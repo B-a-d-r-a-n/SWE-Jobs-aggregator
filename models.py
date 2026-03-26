@@ -10,6 +10,21 @@ from typing import Optional
 import config
 
 
+def _flatten_tags(tags) -> str:
+    """Safely flatten tags to a string, handling nested lists and non-string items."""
+    if not tags:
+        return ""
+    flat = []
+    for item in tags:
+        if isinstance(item, list):
+            flat.extend(str(i) for i in item)
+        elif isinstance(item, dict):
+            flat.append(str(item.get("name", item.get("label", ""))))
+        else:
+            flat.append(str(item))
+    return " ".join(flat)
+
+
 @dataclass
 class Job:
     title: str
@@ -43,7 +58,7 @@ class Job:
     @property
     def emoji(self) -> str:
         """Pick the best emoji based on title and location."""
-        text = f"{self.title} {self.location} {' '.join(self.tags)}".lower()
+        text = f"{self.title} {self.location} {_flatten_tags(self.tags)}".lower()
         for keyword, em in config.EMOJI_MAP.items():
             if keyword in text:
                 return em
@@ -72,7 +87,7 @@ def _is_remote(job: Job) -> bool:
     """Check if job is remote based on multiple signals."""
     if job.is_remote:
         return True
-    combined = f"{job.title} {job.location} {job.job_type} {' '.join(job.tags)}".lower()
+    combined = f"{job.title} {job.location} {job.job_type} {_flatten_tags(job.tags)}".lower()
     return any(p in combined for p in config.REMOTE_PATTERNS)
 
 
@@ -86,7 +101,7 @@ def is_programming_job(job: Job) -> bool:
     Check if job matches programming keywords.
     Must match at least one INCLUDE keyword and no EXCLUDE keywords.
     """
-    searchable = f"{job.title} {' '.join(job.tags)}".lower()
+    searchable = f"{job.title} {_flatten_tags(job.tags)}".lower()
 
     # Must match at least one include keyword
     has_include = any(kw.lower() in searchable for kw in config.INCLUDE_KEYWORDS)
