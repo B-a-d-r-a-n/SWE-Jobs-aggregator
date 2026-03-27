@@ -85,7 +85,7 @@ def fetch_jsearch() -> list[Job]:
                 url=item.get("job_apply_link", ""),
                 source="jsearch",
                 salary=salary,
-                job_type=item.get("job_employment_type", "").replace("FULLTIME", "Full Time")
+                job_type=(item.get("job_employment_type") or "").replace("FULLTIME", "Full Time")
                     .replace("PARTTIME", "Part Time").replace("CONTRACTOR", "Contract")
                     .replace("INTERN", "Internship"),
                 tags=[],
