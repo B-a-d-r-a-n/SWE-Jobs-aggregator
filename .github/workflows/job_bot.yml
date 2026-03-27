@@ -41,7 +41,6 @@ jobs:
           TOPIC_GENERAL: ${{ secrets.TOPIC_GENERAL }}
           TOPIC_BACKEND: ${{ secrets.TOPIC_BACKEND }}
           TOPIC_FRONTEND: ${{ secrets.TOPIC_FRONTEND }}
-          TOPIC_FULLSTACK: ${{ secrets.TOPIC_FULLSTACK }}
           TOPIC_MOBILE: ${{ secrets.TOPIC_MOBILE }}
           TOPIC_DEVOPS: ${{ secrets.TOPIC_DEVOPS }}
           TOPIC_QA: ${{ secrets.TOPIC_QA }}
