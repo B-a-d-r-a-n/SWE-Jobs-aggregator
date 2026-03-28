@@ -14,6 +14,7 @@ from models import filter_jobs
 from dedup import load_seen_ids, save_seen_ids, deduplicate, mark_as_seen
 from telegram_sender import send_jobs
 from cleanup import cleanup_join_messages
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ─── Logging ─────────────────────────────────────────────────
 logging.basicConfig(
@@ -40,16 +41,20 @@ def main():
     if is_seed:
         log.info("🌱 SEED MODE: will register all jobs without sending.")
 
-    # ── 2. Fetch from all sources ─────────────────────────────
+    # ── 2. Fetch from all sources (concurrent) ───────────────
     all_jobs = []
-    for name, fetcher in ALL_FETCHERS:
-        try:
-            log.info(f"📡 Fetching from {name}...")
-            jobs = fetcher()
-            all_jobs.extend(jobs)
-            log.info(f"  ✓ {name}: {len(jobs)} raw jobs")
-        except Exception as e:
-            log.error(f"  ✗ {name} failed: {e}")
+    log.info("📡 Fetching from all sources concurrently...")
+    max_workers = min(8, max(1, len(ALL_FETCHERS)))
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        future_to_name = {ex.submit(fetcher): name for name, fetcher in ALL_FETCHERS}
+        for fut in as_completed(future_to_name):
+            name = future_to_name[fut]
+            try:
+                jobs = fut.result()
+                all_jobs.extend(jobs)
+                log.info(f"  ✓ {name}: {len(jobs)} raw jobs")
+            except Exception as e:
+                log.error(f"  ✗ {name} failed: {e}")
 
     log.info(f"Total raw jobs fetched: {len(all_jobs)}")
 

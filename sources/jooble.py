@@ -4,6 +4,7 @@ import logging
 from models import Job
 from sources.http_utils import post_json
 from config import JOOBLE_API_KEY
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 log = logging.getLogger(__name__)
 
@@ -73,36 +74,47 @@ def fetch_jooble() -> list[Job]:
         return []
 
     url = f"{BASE}/{JOOBLE_API_KEY}"
-    jobs = []
+    jobs: list[Job] = []
+    max_workers = min(10, max(2, len(SEARCHES)))
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        future_to_search = {}
+        for search in SEARCHES:
+            payload = {
+                "keywords": search["keywords"],
+                "location": search["location"],
+                "page": 1,
+            }
+            future = ex.submit(post_json, url, payload)
+            future_to_search[future] = (search, payload)
 
-    for search in SEARCHES:
-        payload = {
-            "keywords": search["keywords"],
-            "location": search["location"],
-            "page": 1,
-        }
-        data = post_json(url, payload=payload)
-        if not data or "jobs" not in data:
-            continue
+        for fut in as_completed(future_to_search):
+            search, payload = future_to_search[fut]
+            try:
+                data = fut.result()
+            except Exception as e:
+                log.warning(f"Jooble query failed ({payload}): {e}")
+                continue
+            if not data or "jobs" not in data:
+                continue
 
-        for item in data["jobs"]:
-            location = item.get("location", "")
-            is_remote = "remote" in location.lower() or "remote" in search["location"].lower()
+            for item in data["jobs"]:
+                location = item.get("location", "")
+                is_remote = "remote" in location.lower() or "remote" in search["location"].lower()
 
-            # Clean snippet HTML
-            snippet = item.get("snippet", "")
-            salary = item.get("salary", "")
+                # Clean snippet HTML
+                snippet = item.get("snippet", "")
+                salary = item.get("salary", "")
 
-            jobs.append(Job(
-                title=item.get("title", ""),
-                company=item.get("company", ""),
-                location=location or search["location"],
-                url=item.get("link", ""),
-                source="jooble",
-                salary=salary,
-                job_type=item.get("type", ""),
-                tags=[],
-                is_remote=is_remote,
-            ))
+                jobs.append(Job(
+                    title=item.get("title", ""),
+                    company=item.get("company", ""),
+                    location=location or search["location"],
+                    url=item.get("link", ""),
+                    source="jooble",
+                    salary=salary,
+                    job_type=item.get("type", ""),
+                    tags=[],
+                    is_remote=is_remote,
+                ))
     log.info(f"Jooble: fetched {len(jobs)} jobs.")
     return jobs

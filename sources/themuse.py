@@ -3,6 +3,7 @@
 import logging
 from models import Job
 from sources.http_utils import get_json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 log = logging.getLogger(__name__)
 
@@ -16,16 +17,22 @@ PARAMS_LIST = [
 
 def fetch_themuse() -> list[Job]:
     """Fetch jobs from The Muse API."""
-    jobs = []
-    # Try v2 first, then fallback
-    for base_url in [
+    jobs: list[Job] = []
+    # Try v2 first, then fallback — run param combinations concurrently
+    bases = [
         "https://www.themuse.com/api/public/jobs",
         "https://www.themuse.com/api/public/v2/jobs",
-    ]:
-        if jobs:
-            break
-        for params in PARAMS_LIST:
-            data = get_json(base_url, params=params)
+    ]
+    calls = [(base, params) for base in bases for params in PARAMS_LIST]
+    max_workers = min(6, max(2, len(calls)))
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        future_to_call = {ex.submit(get_json, base, params=params): (base, params) for base, params in calls}
+        for fut in as_completed(future_to_call):
+            try:
+                data = fut.result()
+            except Exception as e:
+                log.warning(f"The Muse query failed: {e}")
+                continue
             if not data or "results" not in data:
                 continue
             for item in data.get("results", []):
