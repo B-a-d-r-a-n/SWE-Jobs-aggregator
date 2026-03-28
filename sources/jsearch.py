@@ -3,7 +3,7 @@
 import logging
 from models import Job
 from sources.http_utils import get_json
-from config import RAPIDAPI_KEY
+from config import RAPIDAPI_KEY, JSEARCH_MAX_WORKERS
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 log = logging.getLogger(__name__)
@@ -120,7 +120,7 @@ def fetch_jsearch() -> list[Job]:
     }
 
     jobs: list[Job] = []
-    max_workers = min(12, max(2, len(SEARCHES)))
+    max_workers = min(JSEARCH_MAX_WORKERS, max(2, len(SEARCHES)))
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         future_to_params = {ex.submit(get_json, URL, params=params, headers=headers): params for params in SEARCHES}
         for fut in as_completed(future_to_params):

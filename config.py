@@ -635,4 +635,9 @@ SOURCE_DISPLAY = {
 SEEN_JOBS_FILE = "seen_jobs.json"
 MAX_JOBS_PER_RUN = 100   # safety cap per run
 REQUEST_TIMEOUT = 15     # seconds
+JSEARCH_MAX_WORKERS = 64  # max concurrent threads for JSearch queries (tunable)
+# Retry/backoff settings for transient HTTP failures
+RETRY_MAX_ATTEMPTS = 4
+RETRY_BACKOFF_FACTOR = 0.5  # base backoff in seconds (exponential)
+RETRY_BACKOFF_MAX = 30      # cap backoff to this many seconds
 SEED_MODE_ENV = "SEED_MODE"  # env var to force seed mode
