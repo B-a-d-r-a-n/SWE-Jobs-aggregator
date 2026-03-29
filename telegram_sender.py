@@ -27,13 +27,13 @@ def _match_keywords(text: str, keywords: list[str]) -> bool:
 
 def _is_egypt_job(job: Job) -> bool:
     from config import EGYPT_PATTERNS
-    loc = job.location.lower()
+    loc = (job.location or "").lower()
     return any(p in loc for p in EGYPT_PATTERNS)
 
 
 def _is_saudi_job(job: Job) -> bool:
     from config import SAUDI_PATTERNS
-    loc = job.location.lower()
+    loc = (job.location or "").lower()
     return any(p in loc for p in SAUDI_PATTERNS)
 
 

@@ -29,9 +29,9 @@ def _flatten_tags(tags) -> str:
 class Job:
     title: str
     company: str
-    location: str
-    url: str
-    source: str
+    location: str = ""
+    url: str = ""
+    source: str = ""
     salary: str = ""
     job_type: str = ""
     tags: list = field(default_factory=list)
@@ -84,13 +84,13 @@ def _text_matches_any(text: str, patterns) -> bool:
 
 def _is_in_egypt(location: str) -> bool:
     """Check if location indicates Egypt."""
-    loc = location.lower().strip()
+    loc = (location or "").lower().strip()
     return any(p in loc for p in config.EGYPT_PATTERNS)
 
 
 def _is_in_saudi(location: str) -> bool:
     """Check if location indicates Saudi Arabia."""
-    loc = location.lower().strip()
+    loc = (location or "").lower().strip()
     return any(p in loc for p in config.SAUDI_PATTERNS)
 
 
